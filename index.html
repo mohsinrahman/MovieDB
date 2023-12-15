@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie DB</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- Add Movie Form -->
+        <form action="" id="movieForm">
+            <div class="alert">Movie Saved!</div>
+
+            <div class="inputBox">
+                <input type="text" id="movieName" placeholder="Movie name...." />
+            </div>
+
+            <div class="inputBox">
+                <input type="text" id="genre" placeholder="Genre....." />
+            </div>
+
+            <div class="inputBox">
+                <span> Date: </span>
+                 <input type="date" id="releaseDate" placeholder="relased at....." />
+            </div>
+
+            <div class="inputBox">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="container">
+        <h3>Movies:</h3>
+        <!-- List of movies here -->
+            <ul id="movielist">
+               
+            </ul>
+           
+    </div>
+
+    <script type="module" src="js/index.js"></script>
+</body>
+
+</html>
