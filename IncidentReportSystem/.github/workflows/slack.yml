@@ -1,0 +1,12 @@
+username: GitHub CI
+fields:
+  - title: message
+    value: |
+      {{#if payload.commits}}
+      {{#each payload.commits}}
+      • <{{ this.url }}|`{{ truncate this.id 8 }}`> — {{ this.message }}
+      {{/each}}
+      {{else}}
+      {{ payload.head_commit.message }}
+      {{/if}}
+    short: false

@@ -1,0 +1,13 @@
+.circleBadge {
+  background-color: #1e40af !important;
+  display: inline-block !important;
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 8px !important;
+  text-align: center !important;
+  line-height: 38px !important;
+}
+.notificationBox {
+  padding: 3px;
+  margin-left: 10px;
+}

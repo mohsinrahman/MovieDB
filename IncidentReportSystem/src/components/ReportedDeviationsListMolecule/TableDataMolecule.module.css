@@ -1,0 +1,35 @@
+.chip {
+  background-color: #e0f0ff;
+  color: #005bbb;
+  font-weight: bold;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 16px;
+}
+
+.chipIcon {
+  width: 8px;
+  height: 8px;
+  background-color: #005bbb;
+  border-radius: 50%;
+  display: inline-block;
+}
+.death {
+  border-left: 4px solid #f04438;
+}
+
+.seriousInjury {
+  border-left: 4px solid #f04438;
+}
+
+.moderateDamage {
+  border-left: 4px solid #f79009;
+}
+
+.minorDamage {
+  border-left: 4px solid #717680;
+}
+
+.noDamage {
+  border-left: 4px solid #a4a7ae;
+}

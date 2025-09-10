@@ -1,0 +1,182 @@
+name: Build & Deploy Vite React App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEFAULT_VERSION: "0.1.0"
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      FLY_DEV_API_TOKEN: ${{ secrets.FLY_DEV_API_TOKEN }}
+      FLY_PROD_API_TOKEN: ${{ secrets.FLY_PROD_API_TOKEN }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Determine Version and Release Type
+        id: version
+        run: |
+          set -e
+          MSG="${{ github.event.head_commit.message }}"
+          echo "Commit message: $MSG"
+
+          IS_RELEASE=false
+          DEPLOY_TYPE="dev"
+          VERSION=""
+
+          if echo "$MSG" | grep -qE "^Release: [0-9]+\.[0-9]+\.[0-9]+"; then
+            VERSION=$(echo "$MSG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+            MAJOR=$(echo $VERSION | cut -d. -f1)
+            MINOR=$(echo $VERSION | cut -d. -f2)
+            PATCH=$(echo $VERSION | cut -d. -f3)
+
+            if [ "$PATCH" = "0" ]; then
+              IS_RELEASE=true
+              DEPLOY_TYPE="prod"
+            fi
+          fi
+
+          if [ -z "$VERSION" ]; then
+            BASE=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 | sed 's/v//')
+            [ -z "$BASE" ] && BASE=$DEFAULT_VERSION
+
+            MAJOR=$(echo $BASE | cut -d. -f1)
+            MINOR=$(echo $BASE | cut -d. -f2)
+            PATCH=$(echo $BASE | cut -d. -f3)
+            PATCH=$((PATCH + 1))
+            VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "Final version: $VERSION"
+          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_ENV
+          echo "DEPLOY_TYPE=$DEPLOY_TYPE" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create Slack Config (inline)
+        run: |
+          mkdir -p .github
+          cat > .github/slack.yml <<'EOF'
+          username: GitHub CI
+          fields:
+            - title: message
+              value: |
+                {{#if payload.commits}}
+                {{#each payload.commits}}
+                • <{{ this.url }}|`{{ truncate this.id 8 }}`> — {{ this.message }}
+                {{/each}}
+                {{else}}
+                {{ payload.head_commit.message }}
+                {{/if}}
+              short: false
+          EOF
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # - name: Run ESLint
+      #   id: lint
+      #   run: npm run lint
+
+      - name: Slack - Lint Failed
+        if: failure() && steps.lint.outcome == 'failure'
+        uses: act10ns/slack@v2
+        with:
+          status: failure
+          channel: "#ci-cd-updates"
+          message: |
+            :x: *Linting failed for IncidentReportingSystem. Check the logs*
+          config: .github/slack.yml
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      # - name: Run Vite Tests
+      #   id: test
+      #   run: npm test
+
+      - name: Slack - Test Failed
+        if: failure() && steps.test.outcome == 'failure'
+        uses: act10ns/slack@v2
+        with:
+          status: failure
+          channel: "#ci-cd-updates"
+          message: |
+            :x: *Test stage failed for IncidentReportingSystem. Check the logs*
+            • Version: -
+          config: .github/slack.yml
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Setup Fly
+        if: success()
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Build Vite Project for Deployment
+        run: npm run build
+
+      - name: Deploy to Fly.io
+        id: deploy
+        if: success()
+        run: |
+          CONFIG="fly.dev.toml"
+          TOKEN="${{ env.FLY_DEV_API_TOKEN }}"
+
+          if [ "$IS_RELEASE" = "true" ]; then
+            CONFIG="fly.production.toml"
+            TOKEN="${{ env.FLY_PROD_API_TOKEN }}"
+          fi
+
+          echo "Deploying version $VERSION using $CONFIG"
+          FLY_API_TOKEN=$TOKEN flyctl deploy --config $CONFIG --remote-only
+
+      - name: Slack - Deploy Failed
+        if: failure() && steps.deploy.outcome == 'failure'
+        uses: act10ns/slack@v2
+        with:
+          status: failure
+          channel: "#ci-cd-updates"
+          message: |
+            :x: *${{ env.DEPLOY_TYPE == 'prod' && 'Production' || 'Dev' }} deploy failed for IncidentReportingSystem. Check the logs*
+            • Version: v${{ env.VERSION }}
+          config: .github/slack.yml
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Tag Git Version
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Slack - Deploy Success
+        if: success()
+        uses: act10ns/slack@v2
+        with:
+          status: success
+          channel: "#ci-cd-updates"
+          message: |
+            {{#if (eq env.DEPLOY_TYPE "prod")}}
+            :rocket: *New production app has been released for IncidentReportingSystem*
+            • Version: *v{{ env.VERSION }}*
+            {{else}}
+            :white_check_mark: *New Dev version has been Released IncidentReportingSystem*
+            • Version: *v{{ env.VERSION }}*
+            {{/if}}
+          config: .github/slack.yml
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

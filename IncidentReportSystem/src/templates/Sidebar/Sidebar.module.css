@@ -1,0 +1,30 @@
+.sidebar {
+  width: 230px !important;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  margin-bottom: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.spacing {
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+.incidentButton {
+  justify-content: flex-start;
+  color: #0f172a !important;
+  background-color: #e0ecff !important;
+  width: 100%;
+  text-transform: none;
+}
+.logoutButton {
+  justify-content: flex-start;
+  color: #1d4ed8;
+}

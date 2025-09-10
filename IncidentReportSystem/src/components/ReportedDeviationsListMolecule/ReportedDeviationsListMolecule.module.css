@@ -1,0 +1,14 @@
+.flexContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  width: 100%;
+}
+.tabSelected {
+  background-color: #e0f0ff;
+  color: #005bbb;
+  font-weight: bold;
+}
